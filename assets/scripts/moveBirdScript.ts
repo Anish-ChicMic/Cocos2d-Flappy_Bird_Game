@@ -63,28 +63,15 @@ export class moveBirdScript extends Component {
   update(deltaTime: number) {
     // Bird Movement
     let curPosOfBird = this.myBird.getPosition();
-    curPosOfBird.y -= deltaTime * 100;
+    curPosOfBird.y -= deltaTime * 80;
     this.myBird.setPosition(curPosOfBird);
 
     this.deltaTimeGlobal = deltaTime;
 
+    // Moving hurdles
+    this.moveGeneratedHurdles();
 
-    this.node.children.forEach((child) => {
-      if (child.name == "hurdle") {
-        var pos = child.getPosition();
-        // console.log(pos.x);
-
-        pos.x = pos.x - 1;
-        let canvasWidth = this.node.getComponent(UITransform).contentSize.width;
-
-        let hurdleWidth = child.getComponent(UITransform).contentSize.width;
-
-        child.setPosition(pos);
-        if (pos.x <= -1 * (canvasWidth * 0.5 + hurdleWidth * 0.5)) {
-          this.hurdlePool.put(child);
-        }
-      }
-    });
+    
 
 
 
@@ -115,6 +102,34 @@ export class moveBirdScript extends Component {
     // ) {
     //   console.log(" ********** Bird Collided! ***********");
     // }
+
+
+    // Collision Detection
+    let birdRect = this.node.getChildByName("birdNode").getComponent(UITransform).getBoundingBoxToWorld();
+    let baseRect = this.node.getChildByName("baseGround-1").getComponent(UITransform).getBoundingBoxToWorld();
+    if(birdRect.intersects(baseRect)){
+      console.log("Bird Collided With Base!");
+    }
+
+    if (this.node.children[6]) {
+      let hurdleUpRect = this.node.children[6]
+        .getChildByName("pipeUp")
+        .getComponent(UITransform)
+        .getBoundingBoxToWorld();
+      let hurdleDwnRect = this.node.children[6]
+        .getChildByName("pipeDown")
+        .getComponent(UITransform)
+        .getBoundingBoxToWorld();
+
+      if (birdRect.intersects(hurdleUpRect)) {
+        console.log("Bird Collided Up !");
+      }
+      if (birdRect.intersects(hurdleDwnRect)) {
+        console.log("Bird Collided Dwn!");
+      }
+    }
+
+
   }
 
   addHurdle() {
@@ -125,6 +140,7 @@ export class moveBirdScript extends Component {
       newNode.setPosition(450,48.207)
       this.node.addChild(newNode);
       console.log("Hurdle Added!");
+
     }
   }
 
@@ -167,6 +183,27 @@ export class moveBirdScript extends Component {
     }
   }
 
+  // Move generated hurdles
+  moveGeneratedHurdles(){
+    this.node.children.forEach((child) => {
+      if (child.name == "hurdle") {
+        var pos = child.getPosition();
+        // console.log(pos.x);
+
+        pos.x = pos.x - 1;
+        let canvasWidth = this.node.getComponent(UITransform).contentSize.width;
+
+        let hurdleWidth = child.getComponent(UITransform).contentSize.width;
+
+        child.setPosition(pos);
+        if (pos.x <= -1 * (canvasWidth * 0.5 + hurdleWidth * 0.5)) {
+          this.hurdlePool.put(child);
+        }
+      }
+    });
+  }
+
+
   // Keyborad Event
   onKeyDown = () => {
     console.log("Press a key");
@@ -176,7 +213,7 @@ export class moveBirdScript extends Component {
       .to(
         0.3,
         {
-          position: new Vec3(oldPosOfImg.x, oldPosOfImg.y + 50, oldPosOfImg.z),
+          position: new Vec3(oldPosOfImg.x, oldPosOfImg.y + 45, oldPosOfImg.z),
         }
         // { easing: "bounceOut" }
       )
