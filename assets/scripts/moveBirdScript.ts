@@ -14,6 +14,9 @@ import {
   Rect,
   NodePool,
   instantiate,
+  random,
+  randomRange,
+  randomRangeInt
 } from "cc";
 const { ccclass, property } = _decorator;
 
@@ -42,14 +45,9 @@ export class moveBirdScript extends Component {
 
     for (let cnt = 0; cnt < 5; cnt++) {
       let newHurdle = instantiate(this.hurdlePrefab);
+      newHurdle.name = "hurdle";
       this.hurdlePool.put(newHurdle);
     }
-
-    let tmpHurdle = this.hurdlePool.get();
-
-    this.node.addChild(tmpHurdle);
-    this.moveHurdle(tmpHurdle, this.deltaTimeGlobal);
-    
 
     input.on(Input.EventType.KEY_DOWN, this.onKeyDown, this);
     input.on(Input.EventType.KEY_UP, this.onKeyUp, this);
@@ -57,6 +55,9 @@ export class moveBirdScript extends Component {
 
   start() {
     console.log("On Start!");
+    this.schedule(() => {
+      this.addHurdle();
+    }, 4);
   }
 
   update(deltaTime: number) {
@@ -66,6 +67,24 @@ export class moveBirdScript extends Component {
     this.myBird.setPosition(curPosOfBird);
 
     this.deltaTimeGlobal = deltaTime;
+
+
+    this.node.children.forEach((child) => {
+      if (child.name == "hurdle") {
+        var pos = child.getPosition();
+        // console.log(pos.x);
+
+        pos.x = pos.x - 1;
+        let canvasWidth = this.node.getComponent(UITransform).contentSize.width;
+
+        let hurdleWidth = child.getComponent(UITransform).contentSize.width;
+
+        child.setPosition(pos);
+        if (pos.x <= -1 * (canvasWidth * 0.5 + hurdleWidth * 0.5)) {
+          this.hurdlePool.put(child);
+        }
+      }
+    });
 
 
 
@@ -96,6 +115,17 @@ export class moveBirdScript extends Component {
     // ) {
     //   console.log(" ********** Bird Collided! ***********");
     // }
+  }
+
+  addHurdle() {
+    if (this.hurdlePool.size()) {
+      let canvasWidth = this.node.getComponent(UITransform).contentSize.width;
+      let newNode = this.hurdlePool.get();
+      // newNode.setPosition(new Vec3(canvasWidth * 0.5 + newNode.getComponent(UITransform).contentSize.width * 0.5, 13 * randomRangeInt(-10, 10), 0));
+      newNode.setPosition(450,48.207)
+      this.node.addChild(newNode);
+      console.log("Hurdle Added!");
+    }
   }
 
   // Find collision of bird
