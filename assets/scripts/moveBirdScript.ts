@@ -21,6 +21,7 @@ import {
   size,
   Size,
   Label,
+  game,
 } from "cc";
 const { ccclass, property } = _decorator;
 
@@ -79,164 +80,144 @@ export class moveBirdScript extends Component {
     // Ground Movement
     this.movingGround(this.ground_1, deltaTime);
 
-    // Collision Detection
-    let birdRect = this.node
-      .getChildByName("birdNode")
-      .getComponent(UITransform)
-      .getBoundingBoxToWorld();
-    let baseRect = this.node
-      .getChildByName("baseGround-1")
-      .getComponent(UITransform)
-      .getBoundingBoxToWorld();
 
-    if (birdRect.intersects(baseRect)) {
-      console.log("Bird Collided With Base!");
-    }
+
+
+    // Collision Detection
 
     let canvasChildLen = this.node.children.length;
     console.log("Child leng: " + canvasChildLen);
-    if (this.node.children[7]) {
-      let hurdleUpRect = this.node.children[7]
-        .getChildByName("pipeUp")
-        .getComponent(UITransform)
-        .getBoundingBoxToWorld();
 
-      let hurdleDwnRect = this.node.children[7]
-        .getChildByName("pipeDown")
-        .getComponent(UITransform)
-        .getBoundingBoxToWorld();
+    // Collision Detection
 
-      let scrorerNode = this.node.children[7]
-        .getChildByName("scrorerNode")
-        .getComponent(UITransform)
-        .getBoundingBoxToWorld();
+    for (let i = 7; i < canvasChildLen; i++) {
+        let dymHurdle = this.node.children[i];
 
-      if (birdRect.intersects(hurdleUpRect)) {
-        console.log("Bird Collided Up !");
-      }
-      if (birdRect.intersects(hurdleDwnRect)) {
-        console.log("Bird Collided Dwn!");
-      }
+        if (dymHurdle) {
+          let birdRect = this.node.getChildByName("birdNode").getComponent(UITransform).getBoundingBoxToWorld();
+          let baseRect = this.node.getChildByName("baseGround-1").getComponent(UITransform).getBoundingBoxToWorld();
+          let hurdleUpRect = dymHurdle.getChildByName("pipeUp").getComponent(UITransform).getBoundingBoxToWorld();
+          let hurdleDwnRect = dymHurdle.getChildByName("pipeDown").getComponent(UITransform).getBoundingBoxToWorld();
+          let scrorerNode = dymHurdle.getChildByName("scrorerNode").getComponent(UITransform).getBoundingBoxToWorld();
 
-      if (
-        birdRect.intersects(scrorerNode) &&
-        this.node.children[7].getChildByName("scrorerNode").active
-      ) {
-        this.node.children[7].getChildByName("scrorerNode").active = false;
-        //update score here!
-        this.addScore();
-        this.node
-          .getChildByName("scoreBoard")
-          .children[0].getComponent(
-            Label
-          ).string = `Score: ${this.totalScore.toString()}`;
+          if (this.isBirdCollided(birdRect, hurdleUpRect, hurdleDwnRect, baseRect)) {
+            game.pause();
+          }
+          else if (birdRect.intersects(scrorerNode) && dymHurdle.getChildByName("scrorerNode").active) {
+            dymHurdle.getChildByName("scrorerNode").active = false;
+            //update score here!
+            this.addScore();
+            this.node.getChildByName("scoreBoard").children[0].getComponent(Label).string = `Score: ${this.totalScore.toString()}`;
+          }
+        }
       }
     }
-  }
 
-  addScore() {
-    this.totalScore += 1;
-    console.log(
-      "*********************************************************************"
-    );
-    console.log("Score Count: " + this.totalScore);
-    console.log(
-      "*********************************************************************"
-    );
-  }
+    collisionDetection() {
 
-  addHurdle() {
-    if (this.hurdlePool.size()) {
-      let canvasWidth = this.node.getComponent(UITransform).contentSize.width;
-      let newNode = this.hurdlePool.get();
-      let currPos = newNode.getPosition();
-
-      newNode.setPosition(450, currPos.y - randomRangeInt(-20, 20) * 5);
-      newNode.getChildByName("scrorerNode").active = true;
-      this.node.addChild(newNode);
-      // this.node.getChildByName("hurdle").setSiblingIndex(2);
-      console.log("Hurdle Added!");
     }
-  }
 
-  // Find collision of bird
-  isBirdCollided(bird: Rect, hurdleUp: Rect, hurdleDown: Rect, ground: Rect) {
-    if (
-      bird.intersects(hurdleUp) ||
-      bird.intersects(hurdleDown) ||
-      bird.intersects(ground)
-    ) {
-      return true;
+
+
+    addScore() {
+      this.totalScore += 1;
+      console.log(
+        "*********************************************************************"
+      );
+      console.log("Score Count: " + this.totalScore);
+      console.log(
+        "*********************************************************************"
+      );
     }
-    return false;
-  }
 
-  // Moving the hurdle object
-  moveHurdle(hurlde: Node, deltaTime: number) {
-    let currPosOfHurdle_1 = hurlde.getPosition();
-    currPosOfHurdle_1.x -= deltaTime * 100;
-    hurlde.setPosition(currPosOfHurdle_1);
-
-    console.log("Move function called!");
-    console.log(currPosOfHurdle_1);
-
-    if (currPosOfHurdle_1.x + 480 <= 0) {
-      currPosOfHurdle_1.x = 480.156;
-      hurlde.setPosition(currPosOfHurdle_1);
-    }
-  }
-
-  // moving the ground object
-  movingGround(ground: Node, deltaTime: number) {
-    let currPosOfGnd_1 = ground.getPosition();
-    currPosOfGnd_1.x -= deltaTime * 100;
-    ground.setPosition(currPosOfGnd_1);
-
-    if (currPosOfGnd_1.x + 480 <= 0) {
-      currPosOfGnd_1.x = 480.156;
-      ground.setPosition(currPosOfGnd_1);
-    }
-  }
-
-  // Move generated hurdles
-  moveGeneratedHurdles() {
-    this.node.children.forEach((child) => {
-      if (child.name == "hurdle") {
-        var pos = child.getPosition();
-        // console.log(pos.x);
-
-        pos.x = pos.x - 1;
+    addHurdle() {
+      if (this.hurdlePool.size()) {
         let canvasWidth = this.node.getComponent(UITransform).contentSize.width;
+        let newNode = this.hurdlePool.get();
+        let currPos = newNode.getPosition();
 
-        let hurdleWidth = child.getComponent(UITransform).contentSize.width;
-
-        child.setPosition(pos);
-        if (pos.x <= -1 * (canvasWidth * 0.5 + hurdleWidth * 0.5)) {
-          this.hurdlePool.put(child);
-        }
+        newNode.setPosition(450, currPos.y - randomRangeInt(-20, 20) * 5);
+        newNode.getChildByName("scrorerNode").active = true;
+        this.node.addChild(newNode);
+        // this.node.getChildByName("hurdle").setSiblingIndex(2);
+        console.log("Hurdle Added!");
       }
-    });
-  }
+    }
 
-  // Keyborad Event
-  onKeyDown = () => {
-    console.log("Press a key");
-    let oldPosOfImg = this.myBird.getPosition();
+    // Find collision of bird
+    isBirdCollided(bird: Rect, hurdleUp: Rect, hurdleDown: Rect, ground: Rect) {
+      if (bird.intersects(hurdleUp) || bird.intersects(hurdleDown) || bird.intersects(ground)) {
+        return true;
+      }
+      return false;
+    }
 
-    tween(this.myBird)
-      .to(
-        0.3,
-        {
-          position: new Vec3(oldPosOfImg.x, oldPosOfImg.y + 45, oldPosOfImg.z),
+    // Moving the hurdle object
+    moveHurdle(hurlde: Node, deltaTime: number) {
+      let currPosOfHurdle_1 = hurlde.getPosition();
+      currPosOfHurdle_1.x -= deltaTime * 100;
+      hurlde.setPosition(currPosOfHurdle_1);
+
+      console.log("Move function called!");
+      console.log(currPosOfHurdle_1);
+
+      if (currPosOfHurdle_1.x + 480 <= 0) {
+        currPosOfHurdle_1.x = 480.156;
+        hurlde.setPosition(currPosOfHurdle_1);
+      }
+    }
+
+    // moving the ground object
+    movingGround(ground: Node, deltaTime: number) {
+      let currPosOfGnd_1 = ground.getPosition();
+      currPosOfGnd_1.x -= deltaTime * 100;
+      ground.setPosition(currPosOfGnd_1);
+
+      if (currPosOfGnd_1.x + 480 <= 0) {
+        currPosOfGnd_1.x = 480.156;
+        ground.setPosition(currPosOfGnd_1);
+      }
+    }
+
+    // Move generated hurdles
+    moveGeneratedHurdles() {
+      this.node.children.forEach((child) => {
+        if (child.name == "hurdle") {
+          var pos = child.getPosition();
+          // console.log(pos.x);
+
+          pos.x = pos.x - 1;
+          let canvasWidth = this.node.getComponent(UITransform).contentSize.width;
+
+          let hurdleWidth = child.getComponent(UITransform).contentSize.width;
+
+          child.setPosition(pos);
+          if (pos.x <= -1 * (canvasWidth * 0.5 + hurdleWidth * 0.5)) {
+            this.hurdlePool.put(child);
+          }
         }
-        // { easing: "bounceOut" }
-      )
-      .start();
+      });
+    }
 
-    this.myBird.angle = 30;
-  };
+    // Keyborad Event
+    onKeyDown = () => {
+      console.log("Press a key");
+      let oldPosOfImg = this.myBird.getPosition();
 
-  onKeyUp = () => {
-    console.log("Release a key");
-  };
-}
+      tween(this.myBird)
+        .to(
+          0.3,
+          {
+            position: new Vec3(oldPosOfImg.x, oldPosOfImg.y + 45, oldPosOfImg.z),
+          }
+          // { easing: "bounceOut" }
+        )
+        .start();
+
+      this.myBird.angle = 30;
+    };
+
+    onKeyUp = () => {
+      console.log("Release a key");
+    };
+  }
