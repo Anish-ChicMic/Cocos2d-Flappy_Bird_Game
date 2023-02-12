@@ -22,6 +22,11 @@ import {
   Size,
   Label,
   game,
+  rect,
+  Graphics, 
+  Color,
+  director,
+  
 } from "cc";
 const { ccclass, property } = _decorator;
 
@@ -45,10 +50,15 @@ export class moveBirdScript extends Component {
   totalScore: number;
   hurdlePool: NodePool = new NodePool();
   deltaTimeGlobal: number;
+  speed: number; // speed of ground and hurdles movement
+  round: number; // At every round, speed will increase
 
   onLoad() {
     console.log("On Load!");
+
     this.totalScore = 0;
+    this.speed=100;
+    this.round=1;
     for (let cnt = 0; cnt < 5; cnt++) {
       let newHurdle = instantiate(this.hurdlePrefab);
       newHurdle.name = "hurdle";
@@ -57,13 +67,18 @@ export class moveBirdScript extends Component {
 
     input.on(Input.EventType.KEY_DOWN, this.onKeyDown, this);
     input.on(Input.EventType.KEY_UP, this.onKeyUp, this);
+
+    director.preloadScene("endGameScene")
   }
 
   start() {
     console.log("On Start!");
+
+    // Adding hurdles at every 4 seconds
     this.schedule(() => {
       this.addHurdle();
     }, 4);
+  
   }
 
   update(deltaTime: number) {
@@ -76,12 +91,10 @@ export class moveBirdScript extends Component {
     this.deltaTimeGlobal = deltaTime;
 
     // Moving hurdles
-    this.moveGeneratedHurdles(deltaTime);
+    this.moveGeneratedHurdles(deltaTime, this.speed);
 
     // Ground Movement
-    this.movingGround(this.ground_1, deltaTime);
-
-
+    this.movingGround(this.ground_1, deltaTime, this.speed);
     
     // Collision Detection
     let hurdleListLength = this.node.getChildByName("hurdleList").children.length;
@@ -93,7 +106,10 @@ export class moveBirdScript extends Component {
     let baseRectLocal = this.node.getChildByName("baseGround-1").getComponent(UITransform).getBoundingBox();
     if(birdRectLocal.intersects(baseRectLocal)){
       console.log("base collided!")
-      game.pause();
+      console.log("birdRect: "+birdRectLocal);
+      console.log("baseRect: "+baseRectLocal);
+      // game.pause();
+      director.loadScene("endGameScene");
     }
 
     for (let i = 0; i < hurdleListLength; i++) {
@@ -106,7 +122,8 @@ export class moveBirdScript extends Component {
         let scrorerNode = dymHurdle.getChildByName("scrorerNode").getComponent(UITransform).getBoundingBoxToWorld();
 
         if(this.isBirdCollided(birdRect, hurdleUpRect, hurdleDwnRect)) {
-          game.pause();
+          // game.pause();
+          director.loadScene("endGameScene");
         }
         else if(birdRect.intersects(scrorerNode) && dymHurdle.getChildByName("scrorerNode").active) {
           dymHurdle.getChildByName("scrorerNode").active = false;
@@ -117,7 +134,29 @@ export class moveBirdScript extends Component {
       }
     }
 
+    // Updating score of player
+    localStorage.setItem('Score', `${this.totalScore}`)
 
+    // Auto speed increase
+    if(this.totalScore===this.round*10 && this.totalScore%10 === 0){
+      this.speed += 50;
+      this.round+=1;
+      this.node.getChildByName("speedNotifier").getComponent(Label).string = "🌟 speed Increased 🌟";
+      this.node.getChildByName("levelBoard").children[0].getComponent(Label).string = `Level: ${this.round}`;
+
+      // setTimeout(() => {
+      //   this.node.getChildByName("speedNotifier").getComponent(Label).string = "🌟 speed Increased 🌟";
+      //   setTimeout(() => {
+      //     this.node.getChildByName("speedNotifier").getComponent(Label).string = "";
+      //   }, 5);
+      // }, 1);
+
+
+      console.log("******************************************* speed increased");
+    }
+    else{
+      this.node.getChildByName("speedNotifier").getComponent(Label).string = "";
+    }
 
   }
 
@@ -135,14 +174,13 @@ export class moveBirdScript extends Component {
 
     addHurdle() {
       if (this.hurdlePool.size()) {
-        let canvasWidth = this.node.getComponent(UITransform).contentSize.width;
+        // let canvasHeight = this.node.getComponent(UITransform).contentSize.height;
         let newNode = this.hurdlePool.get();
         let currPos = newNode.getPosition();
 
-        newNode.setPosition(450, currPos.y - randomRangeInt(-20, 20) * 5);
+        newNode.setPosition(450, randomRangeInt(-60, 100));
         newNode.getChildByName("scrorerNode").active = true;
         this.node.getChildByName("hurdleList").addChild(newNode);
-        // this.node.getChildByName("hurdle").setSiblingIndex(2);
         console.log("Hurdle Added!");
       }
     }
@@ -150,15 +188,18 @@ export class moveBirdScript extends Component {
     // Find collision of bird
     isBirdCollided(bird: Rect, hurdleUp: Rect, hurdleDown: Rect) {
       if (bird.intersects(hurdleUp) || bird.intersects(hurdleDown)) {
+        console.log("birdRect h: "+bird);
+        console.log("UpRect h: "+hurdleUp);
+        console.log("DownRect h: "+hurdleDown);
         return true;
       }
       return false;
     }
 
     // moving the ground object
-    movingGround(ground: Node, deltaTime: number) {
+    movingGround(ground: Node, deltaTime: number, moveSpeed) {
       let currPosOfGnd_1 = ground.getPosition();
-      currPosOfGnd_1.x -= deltaTime * 100;
+      currPosOfGnd_1.x -= deltaTime * moveSpeed;
       ground.setPosition(currPosOfGnd_1);
 
       if (currPosOfGnd_1.x + 480 <= 0) {
@@ -168,13 +209,13 @@ export class moveBirdScript extends Component {
     }
 
     // Move generated hurdles
-    moveGeneratedHurdles(deltaTime: number) {
+    moveGeneratedHurdles(deltaTime: number, moveSpeed) {
       this.node.getChildByName("hurdleList").children.forEach((child) => {
           let pos = child.getPosition();
           let canvasWidth = this.node.getComponent(UITransform).contentSize.width;
           let hurdleWidth = child.getComponent(UITransform).contentSize.width;
 
-          pos.x -= deltaTime * 100; // Moving hurdles
+          pos.x -= deltaTime * moveSpeed; // Moving hurdles
           child.setPosition(pos);
 
           if (pos.x <= -1 * (canvasWidth * 0.5 + hurdleWidth * 0.5)) { // If hurdle gone out of frame, put it again in nodepool to reuse it again
